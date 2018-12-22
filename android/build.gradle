@@ -35,6 +35,8 @@ android {
 
 dependencies {
     compile "com.facebook.react:react-native:+"
+    compile 'javax.servlet:servlet-api:2.5'
     compile 'org.nanohttpd:nanohttpd:2.3.1'
     compile 'org.nanohttpd:nanohttpd-webserver:2.3.1'
+    compile 'org.nanohttpd:nanohttpd-apache-fileupload:2.3.1'
 }

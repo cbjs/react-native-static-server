@@ -1,6 +1,7 @@
 import {
 	NativeModules,
 	AppState,
+	DeviceEventEmitter,
 	Platform
  } from 'react-native';
 
@@ -8,6 +9,8 @@ const { FPStaticServer } = NativeModules;
 
 const PORT = '';
 const ROOT = null;
+const UPLOAD = null;
+const TIMEOUT = 5000;
 const LOCALHOST = 'http://127.0.0.1:';
 
 class StaticServer {
@@ -18,6 +21,8 @@ class StaticServer {
 				this.root = root || ROOT;
 				this.localOnly = (opts && opts.localOnly) || false;
 				this.keepAlive = (opts && opts.keepAlive) || false;
+				this.uploadDir = (opts && opts.uploadDir) || UPLOAD;
+				this.timeoutInMillis = (opts && opts.timeoutInMillis) || TIMEOUT;
 				break;
 			case 2:
 				this.port = `${port}`;
@@ -51,9 +56,29 @@ class StaticServer {
 				this.keepAlive = false;
 		}
 
-
 		this.started = false;
+		this.routes = [];
 		this._origin = undefined;
+		DeviceEventEmitter.addListener('webServerRNRequest', (e) => {
+			const {__id, __files, __uri, ...params} = e.nativeEvent;
+			for (let route of this.routes) {
+				if (route.pattern.exec(__uri)) {
+					route.handle({files: __files, params}, (result) => {
+						FPStaticServer.response(__id, JSON.stringify(result));
+					});
+					return;
+				}
+			}
+			console.warn(`no handler for ${__uri}`);
+		});
+	}
+
+	route(pattern, handle) {
+		if (pattern instanceof RegExp) {
+			this.routes.push({pattern, handle});
+		} else {
+			console.warn("add route fail for", pattern, handle);
+		}
 	}
 
 	start() {
@@ -79,12 +104,12 @@ class StaticServer {
 
 	stop() {
 		this.running = false;
-
 		return FPStaticServer.stop();
 	}
 
 	kill() {
 		this.stop();
+		DeviceEventEmitter.removeAllListeners('webServerRNRequest');
 		this.started = false;
 		this._origin = undefined;
 		AppState.removeEventListener('change', this._handleAppStateChange.bind(this));
