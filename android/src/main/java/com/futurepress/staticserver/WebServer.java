@@ -34,6 +34,8 @@ public class WebServer extends SimpleWebServer
         int timeoutInMillis();
 
         InputStream assets(String uri);
+
+        boolean tryAssets();
     }
 
     public WebServer(String localAddr, int port, File wwwroot) throws IOException {
@@ -125,20 +127,20 @@ public class WebServer extends SimpleWebServer
             return newFixedLengthResponse(status, mime, message);
         }
 
-        // static serve
-
-        uri = uri.trim().replace(File.separatorChar, '/');
-        if (uri.indexOf('?') >= 0) {
-            uri = uri.substring(0, uri.indexOf('?'));
+        if (handler.tryAssets()) {
+          // static serve
+          uri = uri.trim().replace(File.separatorChar, '/');
+          if (uri.indexOf('?') >= 0) {
+              uri = uri.substring(0, uri.indexOf('?'));
+          }
+          // try assets
+          if (this.handler != null) {
+              InputStream asset = handler.assets(uri);
+              if (asset != null) {
+                  return newChunkedResponse(status, getMimeTypeForFile(uri), asset);
+              }
+          }
         }
-        // try assets
-        if (this.handler != null) {
-            InputStream asset = handler.assets(uri);
-            if (asset != null) {
-                return newChunkedResponse(status, getMimeTypeForFile(uri), asset);
-            }
-        }
-
 
         return super.serve(session);
     }

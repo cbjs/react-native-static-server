@@ -20,6 +20,7 @@ class StaticServer {
 				this.port = `${port}` || PORT;
 				this.root = root || ROOT;
 				this.localOnly = (opts && opts.localOnly) || false;
+				this.tryAssets = (opts && opts.tryAssets) || false;
 				this.keepAlive = (opts && opts.keepAlive) || false;
 				this.uploadDir = (opts && opts.uploadDir) || UPLOAD;
 				this.timeoutInMillis = (opts && opts.timeoutInMillis) || TIMEOUT;
@@ -59,8 +60,9 @@ class StaticServer {
 		this.started = false;
 		this.routes = [];
 		this._origin = undefined;
-		DeviceEventEmitter.addListener('webServerRNRequest', (e) => {
-			const {__id, __files, __uri, ...params} = e.nativeEvent;
+		DeviceEventEmitter.addListener('webServerRNRequest', ({__id, __files, __uri, ...params}) => {
+			console.warn('here', __id, __files, __uri);
+			// const {__id, __files, __uri, ...params} = e.nativeEvent;
 			for (let route of this.routes) {
 				if (route.pattern.exec(__uri)) {
 					route.handle({files: __files, params}, (result) => {
@@ -95,8 +97,15 @@ class StaticServer {
 			AppState.addEventListener('change', this._handleAppStateChange.bind(this));
 		}
 
-		return FPStaticServer.start(this.port, this.root, this.localOnly, this.keepAlive)
-			.then((origin) => {
+		return FPStaticServer.start({
+			port: this.port,
+			root: this.root,
+			localOnly: this.localOnly,
+			keepAlive: this.keepAlive,
+			uploadDir: this.uploadDir,
+			tryAssets: this.tryAssets,
+			timeoutInMillis: this.timeoutInMillis
+		}).then((origin) => {
 				this._origin = origin;
 				return origin;
 			});

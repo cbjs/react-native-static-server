@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.LifecycleEventListener;
 import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.io.File;
@@ -41,6 +42,7 @@ public class FPStaticServerModule extends ReactContextBaseJavaModule implements 
   private File upload_dir = null;
   private boolean localhost_only = false;
   private boolean keep_alive = false;
+  private boolean try_assets = false;
 
   private String localPath = "";
   private WebServer server = null;
@@ -79,9 +81,14 @@ public class FPStaticServerModule extends ReactContextBaseJavaModule implements 
   }
 
   @ReactMethod
-  public void start(String _port, String root, Boolean localhost, Boolean keepAlive, String uploadDir, int timeoutInMillis, Promise promise) {
-
-    this.timeoutInMillis = timeoutInMillis;
+  public void start(ReadableMap options, Promise promise) {
+    String _port = options.getString("port");
+    String root = options.getString("root");
+    Boolean localhost = options.getBoolean("localOnly");
+    Boolean keepAlive = options.getBoolean("keepAlive");
+    String uploadDir = options.getString("uploadDir");
+    this.timeoutInMillis = options.getInt("timeoutInMillis");
+    this.try_assets = options.getBoolean("tryAssets");
 
     if (server != null){
       promise.resolve(url);
@@ -222,8 +229,8 @@ public class FPStaticServerModule extends ReactContextBaseJavaModule implements 
     List<String> filePaths = new ArrayList<>();
     if (upload_dir != null) {
       for (FileItem item : files) {
-        File saveFile = new File(upload_dir, item.getName());
         try {
+          File saveFile = new File(upload_dir, item.getName());
           item.write(saveFile);
           filePaths.add(saveFile.getAbsolutePath());
         } catch (Exception e) {
@@ -259,5 +266,10 @@ public class FPStaticServerModule extends ReactContextBaseJavaModule implements 
     } catch (IOException e) {
       return null;
     }
+  }
+
+  @Override
+  public boolean tryAssets() {
+    return this.try_assets;
   }
 }
